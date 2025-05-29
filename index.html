@@ -109,18 +109,18 @@
 
 
 <script>
-  const scriptURL = 'https://script.google.com/macros/s/AKfycbzpCE8kJvlwSWgnrmLn1y23D0W_cYfK2KbKt5XgYQSk-URoNuTYhfFI4_figuKRmjmv/exec';
+  const scriptURL = 'https://script.google.com/macros/s/AKfycbx_YLcCFBkoB_NPTn4lKtrHJ77yKRav3B8pB14Bn1JWg1Z-c6tVccvhXrCNcgsArXc/exec';
 
   document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('qaForm');
 
-    // Set Create Date and Submission Time
+    // Set Create Date on load
     const createDateField = document.getElementById("createDate");
-    if (createDateField) {
-      createDateField.value = new Date().toLocaleString();  // ✅ Full date + time in the user's local format
+    if (createDateField && !createDateField.value) {
+      createDateField.value = new Date().toLocaleString("en-US", { timeZone: "America/Chicago" });
     }
 
-    // Save and Submit actions
+    // Handle Save and Submit
     form.addEventListener('submit', e => handleSubmit(e, "submit"));
     document.getElementById('saveBtn').addEventListener('click', e => handleSubmit(e, "save"));
 
@@ -128,15 +128,17 @@
       e.preventDefault();
 
       // Set Submission Time
-      document.getElementById("submissionTime").value = new Date().toLocaleString();
+      const submissionTimeField = document.getElementById("submissionTime");
+      if (submissionTimeField) {
+        submissionTimeField.value = new Date().toLocaleString("en-US", { timeZone: "America/Chicago" });
+      }
 
       const formData = new FormData(form);
-      formData.append("Form Status", status);  // Determine if the form is being saved or submitted
+      formData.append("Form Status", status);
 
       fetch(scriptURL, { method: 'POST', body: formData })
         .then(res => res.text())
         .then(id => {
-          // Show Submission ID on the form
           document.getElementById('submissionId').value = id;
           document.getElementById('submissionIdDisplay').innerText = `Submission ID: ${id}`;
           document.getElementById('submissionIdDisplay').style.display = 'block';
@@ -145,7 +147,7 @@
         .catch(err => alert("Error submitting form: " + err));
     }
 
-    // Fetch existing entry based on Submission ID
+    // Fetch existing entry by Submission ID
     document.getElementById('fetchDataBtn').addEventListener('click', () => {
       const submissionId = document.getElementById('searchResponseId').value.trim();
       if (!submissionId) {
@@ -153,24 +155,30 @@
         return;
       }
 
-      fetch(`${scriptURL}?action=get&id=${submissionId}`)
+      const fetchURL = `${scriptURL}?submissionId=${submissionId}`;
+
+      fetch(fetchURL)
         .then(response => response.json())
         .then(data => {
-          if (data.status === 'success') {
-            // Fill the form fields with retrieved data
-            Object.keys(data.entry).forEach(key => {
+          if (data.success) {
+            const formData = data.data;
+
+            Object.keys(formData).forEach(key => {
               const field = document.querySelector(`[name="${key}"]`);
+
               if (field) {
                 if (field.type === 'checkbox') {
-                  field.checked = data.entry[key] === 'TRUE';
+                  field.checked = formData[key] === 'TRUE' || formData[key] === true;
                 } else {
-                  field.value = data.entry[key];
+                  field.value = formData[key];
                 }
               }
             });
+
             document.getElementById('submissionIdDisplay').innerText = `Editing Submission ID: ${submissionId}`;
             document.getElementById('submissionIdDisplay').style.display = 'block';
             document.getElementById('submissionId').value = submissionId;
+
           } else {
             alert(`No entry found for Submission ID: ${submissionId}`);
           }
@@ -179,6 +187,7 @@
     });
   });
 </script>
+
 
 
 </body>
