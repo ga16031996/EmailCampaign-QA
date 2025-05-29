@@ -109,75 +109,77 @@
 
 
 <script>
-  const form = document.getElementById("qaForm");
-  const scriptUrl = "https://script.google.com/macros/s/AKfycbw45M8SMWPLbz4WLGUzt_FTKivgTv1n9FiqgtPE3NqahMjg5TEhbD1jSpTeKHUpgbv5/exec"; // Replace with your actual URL
+  const scriptURL = 'https://script.google.com/macros/s/AKfycbzpCE8kJvlwSWgnrmLn1y23D0W_cYfK2KbKt5XgYQSk-URoNuTYhfFI4_figuKRmjmv/exec';
 
-  form.addEventListener("submit", async function (event) {
-    event.preventDefault();
+  document.addEventListener('DOMContentLoaded', () => {
+    const form = document.getElementById('qaForm');
 
-    const formData = new FormData(form);
-    const data = {};
-    formData.forEach((value, key) => data[key] = value);
+    // Set Create Date and Submission Time
+    const createDateField = document.getElementById("createDate");
+    if (createDateField) {
+      createDateField.value = new Date().toLocaleString();  // ✅ Full date + time in the user's local format
+    }
 
-    try {
-      const response = await fetch(scriptUrl, {
-        method: "POST",
-        body: new URLSearchParams(data),
-      });
+    // Save and Submit actions
+    form.addEventListener('submit', e => handleSubmit(e, "submit"));
+    document.getElementById('saveBtn').addEventListener('click', e => handleSubmit(e, "save"));
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Submission failed. Server response:", errorText);
-        alert("Submission failed. Check console for details.");
+    function handleSubmit(e, status) {
+      e.preventDefault();
+
+      // Set Submission Time
+      document.getElementById("submissionTime").value = new Date().toLocaleString();
+
+      const formData = new FormData(form);
+      formData.append("Form Status", status);  // Determine if the form is being saved or submitted
+
+      fetch(scriptURL, { method: 'POST', body: formData })
+        .then(res => res.text())
+        .then(id => {
+          // Show Submission ID on the form
+          document.getElementById('submissionId').value = id;
+          document.getElementById('submissionIdDisplay').innerText = `Submission ID: ${id}`;
+          document.getElementById('submissionIdDisplay').style.display = 'block';
+          alert(`${status === 'save' ? 'Saved' : 'Submitted'} successfully!`);
+        })
+        .catch(err => alert("Error submitting form: " + err));
+    }
+
+    // Fetch existing entry based on Submission ID
+    document.getElementById('fetchDataBtn').addEventListener('click', () => {
+      const submissionId = document.getElementById('searchResponseId').value.trim();
+      if (!submissionId) {
+        alert('Please enter a Submission ID.');
         return;
       }
 
-      const result = await response.json();
-      if (result.result === "success") {
-        alert("Form submitted. Submission ID: " + result.submissionId);
-        document.getElementById("submissionIdDisplay").innerText = "Submission ID: " + result.submissionId;
-        form.reset();
-      } else {
-        alert("Error submitting form: " + JSON.stringify(result));
-      }
-    } catch (error) {
-      console.error("Fetch error:", error);
-      alert("Error submitting form. Check browser console.");
-    }
-  });
-
-  document.getElementById("fetchDataBtn").addEventListener("click", async function () {
-    const id = document.getElementById("searchResponseId").value.trim();
-    if (!id) {
-      alert("Please enter a Submission ID.");
-      return;
-    }
-
-    try {
-      const response = await fetch(`${scriptUrl}?id=${id}`);
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Fetch failed. Server response:", errorText);
-        alert("Could not fetch submission. Check console.");
-        return;
-      }
-
-      const result = await response.json();
-      if (result.error) {
-        alert("Submission ID not found.");
-        return;
-      }
-
-      for (const key in result) {
-        const field = document.querySelector(`[name="${key}"]`);
-        if (field) field.value = result[key];
-      }
-    } catch (error) {
-      console.error("Fetch error:", error);
-      alert("Error fetching data. Check browser console.");
-    }
+      fetch(`${scriptURL}?action=get&id=${submissionId}`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.status === 'success') {
+            // Fill the form fields with retrieved data
+            Object.keys(data.entry).forEach(key => {
+              const field = document.querySelector(`[name="${key}"]`);
+              if (field) {
+                if (field.type === 'checkbox') {
+                  field.checked = data.entry[key] === 'TRUE';
+                } else {
+                  field.value = data.entry[key];
+                }
+              }
+            });
+            document.getElementById('submissionIdDisplay').innerText = `Editing Submission ID: ${submissionId}`;
+            document.getElementById('submissionIdDisplay').style.display = 'block';
+            document.getElementById('submissionId').value = submissionId;
+          } else {
+            alert(`No entry found for Submission ID: ${submissionId}`);
+          }
+        })
+        .catch(err => alert("Failed to fetch data: " + err));
+    });
   });
 </script>
+
 
 </body>
 </html>
