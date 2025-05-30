@@ -89,17 +89,7 @@
     <td style="vertical-align: top; width: 50%; padding: 20px; border: 1px solid #ddd; border-radius: 10px; background: #f9f9f9;">
       <h3 style="margin-top: 0;">Send to Client</h3>
       <p>Use the button below to send the JOB SHEET to the client.</p>
-      <a href="URL_TO_JOB_SHEET_FORM" target="_blank" style="
-        display: inline-block;
-        background-color: #007bff;
-        color: white;
-        padding: 10px 20px;
-        text-decoration: none;
-        border-radius: 6px;
-        font-weight: bold;
-      ">
-        Send JOB SHEET to Client
-      </a>
+<button type="button" onclick="sendJobSheet()">SEND JOB SHEET to client</button>
     </td>
   </tr>
 </table>
@@ -107,9 +97,28 @@
 
 
 
-
 <script>
   const scriptURL = 'https://script.google.com/macros/s/AKfycbx_YLcCFBkoB_NPTn4lKtrHJ77yKRav3B8pB14Bn1JWg1Z-c6tVccvhXrCNcgsArXc/exec';
+  
+  function sendJobSheet() {
+  const submissionId = document.getElementById("submissionId").value; // replace with actual ID input
+  if (!submissionId) {
+    alert("Submission ID is required");
+    return;
+  }
+
+  fetch('https://script.google.com/macros/s/AKfycbx_YLcCFBkoB_NPTn4lKtrHJ77yKRav3B8pB14Bn1JWg1Z-c6tVccvhXrCNcgsArXc/exec', {
+    method: 'POST',
+    body: new URLSearchParams({ submissionId })
+  })
+  .then(res => res.text())
+  .then(msg => {
+    alert("Job sheet sent: " + msg);
+  })
+  .catch(err => {
+    alert("Error sending job sheet: " + err);
+  });
+}
 
   document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('qaForm');
