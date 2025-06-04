@@ -112,22 +112,24 @@
     });
 
     function handleSubmit(status) {
-      document.getElementById("formStatus").value = status;
-      document.getElementById("submissionTime").value = new Date().toLocaleString("en-US", { timeZone: "America/Chicago" });
+  const form = document.getElementById("qaForm");
+  const formData = new FormData(form);
+  formData.append("Form Status", status);
 
-      const formData = new FormData(form);
-      fetch(scriptURL, {
-        method: "POST",
-        body: formData
-      })
-        .then(response => response.text())
-        .then(responseText => {
-          document.getElementById("submissionIdDisplay").innerText = "Saved! Submission ID: " + document.getElementById("submissionId").value;
-        })
-        .catch(error => {
-          alert("Submission failed: " + error);
-        });
-    }
+  fetch(scriptURL, {
+    method: "POST",
+    body: formData,
+  })
+    .then((response) => response.text())
+    .then((text) => {
+      alert("Form submitted successfully!");
+      console.log("Response:", text);
+    })
+    .catch((error) => {
+      alert("Submission failed!");
+      console.error("Error:", error);
+    });
+}
 
     document.getElementById("saveBtn").addEventListener("click", () => handleSubmit("Saved"));
     document.getElementById("submitBtn").addEventListener("click", () => handleSubmit("Submitted"));
