@@ -89,7 +89,7 @@
     <td style="vertical-align: top; width: 50%; padding: 20px; border: 1px solid #ddd; border-radius: 10px; background: #f9f9f9;">
       <h3 style="margin-top: 0;">Send to Client</h3>
       <p>Use the button below to send the JOB SHEET to the client.</p>
-<button type="button" onclick="sendJobSheet()">SEND JOB SHEET to client</button>
+<button type="button" id="sendJobSheetBtn">SEND JOB SHEET to client</button>
     </td>
   </tr>
 </table>
@@ -98,104 +98,73 @@
 
 
 <script>
-  const scriptURL = 'https://script.google.com/macros/s/AKfycbx_YLcCFBkoB_NPTn4lKtrHJ77yKRav3B8pB14Bn1JWg1Z-c6tVccvhXrCNcgsArXc/exec';
-  
-  function sendJobSheet() {
-  const submissionId = document.getElementById("submissionId").value; // replace with actual ID input
-  if (!submissionId) {
-    alert("Submission ID is required");
-    return;
-  }
-
-  fetch('https://script.google.com/macros/s/AKfycbx_YLcCFBkoB_NPTn4lKtrHJ77yKRav3B8pB14Bn1JWg1Z-c6tVccvhXrCNcgsArXc/exec', {
-    method: 'POST',
-    body: new URLSearchParams({ submissionId })
-  })
-  .then(res => res.text())
-  .then(msg => {
-    alert("Job sheet sent: " + msg);
-  })
-  .catch(err => {
-    alert("Error sending job sheet: " + err);
-  });
-}
+  const scriptURL = 'https://script.google.com/macros/s/AKfycbxi5RKqjfd9Ridt2vCKybyqyLbRXimBJmus0fybq2j_-FepvY19bBpFAYukYHvtYcV5/exec'; // Replace with your deployed Apps Script URL
 
   document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('qaForm');
+    const submissionIdInput = document.getElementById('submissionId');
+    const submissionTimeInput = document.getElementById('submissionTime');
+    const createDateInput = document.getElementById('createDate');
+    const timezoneOffset = -6; // CST (UTC-6)
 
-    // Set Create Date on load
-    const createDateField = document.getElementById("createDate");
-    if (createDateField && !createDateField.value) {
-      createDateField.value = new Date().toLocaleString("en-US", { timeZone: "America/Chicago" });
+    function formatDateToCST(date = new Date()) {
+      const utc = date.getTime() + date.getTimezoneOffset() * 60000;
+      const cst = new Date(utc + 3600000 * timezoneOffset);
+      return cst.toISOString().replace("T", " ").split(".")[0];
     }
 
-    // Handle Save and Submit
-    form.addEventListener('submit', e => handleSubmit(e, "submit"));
-    document.getElementById('saveBtn').addEventListener('click', e => handleSubmit(e, "save"));
+    createDateInput.value ||= formatDateToCST();
+    submissionTimeInput.value = formatDateToCST();
 
-    function handleSubmit(e, status) {
+    // Normal form submit
+    form.addEventListener('submit', e => {
       e.preventDefault();
-
-      // Set Submission Time
-      const submissionTimeField = document.getElementById("submissionTime");
-      if (submissionTimeField) {
-        submissionTimeField.value = new Date().toLocaleString("en-US", { timeZone: "America/Chicago" });
+      const formData = new FormData(form);
+      if (submissionIdInput.value) {
+        formData.append("submissionId", submissionIdInput.value);
       }
 
-      const formData = new FormData(form);
-      formData.append("Form Status", status);
-
-      fetch(scriptURL, { method: 'POST', body: formData })
-        .then(res => res.text())
-        .then(id => {
-          document.getElementById('submissionId').value = id;
-          document.getElementById('submissionIdDisplay').innerText = `Submission ID: ${id}`;
-          document.getElementById('submissionIdDisplay').style.display = 'block';
-          alert(`${status === 'save' ? 'Saved' : 'Submitted'} successfully!`);
+      fetch(scriptURL, {
+        method: 'POST',
+        body: formData
+      })
+        .then(response => response.text())
+        .then(responseText => {
+          alert("Form submitted successfully.");
+          console.log(responseText);
         })
-        .catch(err => alert("Error submitting form: " + err));
-    }
+        .catch(error => {
+          alert("Form submission failed.");
+          console.error('Error!', error.message);
+        });
+    });
 
-    // Fetch existing entry by Submission ID
-    document.getElementById('fetchDataBtn').addEventListener('click', () => {
-      const submissionId = document.getElementById('searchResponseId').value.trim();
+    // Send Job Sheet to client button
+    document.getElementById("sendJobSheetBtn").addEventListener("click", () => {
+      const submissionId = submissionIdInput.value;
       if (!submissionId) {
-        alert('Please enter a Submission ID.');
+        alert("Submission ID is missing. Please save the form first.");
         return;
       }
 
-      const fetchURL = `${scriptURL}?submissionId=${submissionId}`;
+      const url = `${scriptURL}?submissionId=${encodeURIComponent(submissionId)}&sendJobSheet=true`;
 
-      fetch(fetchURL)
-        .then(response => response.json())
+      fetch(url, {
+        method: "POST"
+      })
+        .then(res => res.text())
         .then(data => {
-          if (data.success) {
-            const formData = data.data;
-
-            Object.keys(formData).forEach(key => {
-              const field = document.querySelector(`[name="${key}"]`);
-
-              if (field) {
-                if (field.type === 'checkbox') {
-                  field.checked = formData[key] === 'TRUE' || formData[key] === true;
-                } else {
-                  field.value = formData[key];
-                }
-              }
-            });
-
-            document.getElementById('submissionIdDisplay').innerText = `Editing Submission ID: ${submissionId}`;
-            document.getElementById('submissionIdDisplay').style.display = 'block';
-            document.getElementById('submissionId').value = submissionId;
-
-          } else {
-            alert(`No entry found for Submission ID: ${submissionId}`);
-          }
+          alert("Job Sheet sent to client.");
+          console.log(data);
         })
-        .catch(err => alert("Failed to fetch data: " + err));
+        .catch(err => {
+          alert("Failed to send Job Sheet.");
+          console.error("Error sending job sheet:", err);
+        });
     });
   });
 </script>
+
 
 
 
