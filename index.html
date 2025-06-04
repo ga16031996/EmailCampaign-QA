@@ -97,73 +97,50 @@
 
 
 
-<script>
-  const scriptURL = 'https://script.google.com/macros/s/AKfycbxi5RKqjfd9Ridt2vCKybyqyLbRXimBJmus0fybq2j_-FepvY19bBpFAYukYHvtYcV5/exec'; // Replace with your deployed Apps Script URL
+ <script>
+    const form = document.getElementById("qaForm");
+    const scriptURL = "https://script.google.com/macros/s/AKfycbxi5RKqjfd9Ridt2vCKybyqyLbRXimBJmus0fybq2j_-FepvY19bBpFAYukYHvtYcV5/exec"; // Replace with your deployed Apps Script URL
 
-  document.addEventListener('DOMContentLoaded', () => {
-    const form = document.getElementById('qaForm');
-    const submissionIdInput = document.getElementById('submissionId');
-    const submissionTimeInput = document.getElementById('submissionTime');
-    const createDateInput = document.getElementById('createDate');
-    const timezoneOffset = -6; // CST (UTC-6)
+    document.addEventListener("DOMContentLoaded", () => {
+      const now = new Date();
+      document.getElementById("createDate").value = now.toLocaleString("en-US", { timeZone: "America/Chicago" });
 
-    function formatDateToCST(date = new Date()) {
-      const utc = date.getTime() + date.getTimezoneOffset() * 60000;
-      const cst = new Date(utc + 3600000 * timezoneOffset);
-      return cst.toISOString().replace("T", " ").split(".")[0];
-    }
-
-    createDateInput.value ||= formatDateToCST();
-    submissionTimeInput.value = formatDateToCST();
-
-    // Normal form submit
-    form.addEventListener('submit', e => {
-      e.preventDefault();
-      const formData = new FormData(form);
-      if (submissionIdInput.value) {
-        formData.append("submissionId", submissionIdInput.value);
+      const submissionIdInput = document.getElementById("submissionId");
+      if (!submissionIdInput.value) {
+        submissionIdInput.value = crypto.randomUUID();
       }
+    });
 
+    function handleSubmit(status) {
+      document.getElementById("formStatus").value = status;
+      document.getElementById("submissionTime").value = new Date().toLocaleString("en-US", { timeZone: "America/Chicago" });
+
+      const formData = new FormData(form);
       fetch(scriptURL, {
-        method: 'POST',
+        method: "POST",
         body: formData
       })
         .then(response => response.text())
         .then(responseText => {
-          alert("Form submitted successfully.");
-          console.log(responseText);
+          document.getElementById("submissionIdDisplay").innerText = "Saved! Submission ID: " + document.getElementById("submissionId").value;
         })
         .catch(error => {
-          alert("Form submission failed.");
-          console.error('Error!', error.message);
+          alert("Submission failed: " + error);
         });
-    });
+    }
 
-    // Send Job Sheet to client button
+    document.getElementById("saveBtn").addEventListener("click", () => handleSubmit("Saved"));
+    document.getElementById("submitBtn").addEventListener("click", () => handleSubmit("Submitted"));
+
     document.getElementById("sendJobSheetBtn").addEventListener("click", () => {
-      const submissionId = submissionIdInput.value;
-      if (!submissionId) {
-        alert("Submission ID is missing. Please save the form first.");
-        return;
-      }
-
-      const url = `${scriptURL}?submissionId=${encodeURIComponent(submissionId)}&sendJobSheet=true`;
-
-      fetch(url, {
-        method: "POST"
-      })
+      const submissionId = document.getElementById("submissionId").value;
+      if (!submissionId) return alert("Submission ID missing.");
+      fetch(`${scriptURL}?submissionId=${submissionId}&sendJobSheet=true`)
         .then(res => res.text())
-        .then(data => {
-          alert("Job Sheet sent to client.");
-          console.log(data);
-        })
-        .catch(err => {
-          alert("Failed to send Job Sheet.");
-          console.error("Error sending job sheet:", err);
-        });
+        .then(msg => alert("Job Sheet: " + msg))
+        .catch(err => alert("Error sending job sheet: " + err));
     });
-  });
-</script>
+  </script>
 
 
 
